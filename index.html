@@ -1,163 +1,184 @@
-
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<html>
 <head>
-  <meta charset="utf-8">
-  <title>Sean Sit</title>
-  <meta name="author" content="Sean Sit">
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css'/>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js'></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/later/1.2.0/later.js" type="text/javascript"></script>
+    <script type="text/javascript">
 
-  
-  <meta name="description" content="
-">
-  
+        function isValid(cronExpression, date) {
+            var sched = later.parse.cron(cronExpression, true);
+            return later.schedule(sched).isValid(date);
+        }
 
-  <!-- http://t.co/dKP3o1e -->
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  
-  <link rel="canonical" href="http://seansit.github.com">
-  <link href="/favicon.png" rel="icon">
-  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="/javascripts/ender.js"></script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
-  <link href="/atom.xml" rel="alternate" title="Sean Sit" type="application/atom+xml">
-  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
-<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+        var colors = ["#384B5D", "#6C96A1", "#6EC5AB", "#D35400"];
 
-  
+        $(function () {
+            $('#calendar').fullCalendar({
+                allDaySlot: false,
+                defaultView: 'agendaWeek',
+                slotDuration: '01:00:00',
+                header: {center: 'agendaWeek, month'},
+                displayEventTime: false,
+                // put your options and callbacks here
+                events: function (start, end, timezone, callback) {
+                    callback(getEvents(start, end));
+                }
+            });
 
+            $('input').keyup(function () {
+                $('#calendar').fullCalendar('refetchEvents')
+            })
+
+            $('#preview').click(function () {
+                $('#calendar').fullCalendar('refetchEvents')
+            });
+
+        });
+
+        function getTimingRules() {
+            var timingRules = {}
+            timingRules.rules = [];
+            timingRules.defaultValue = $('#defaultValue').val();
+
+            if ($('#c1').val().length > 0) {
+                timingRules.rules.push({cronExpr: $('#c1').val(), value: $('#l1').val()})
+            }
+            if ($('#c2').val().length > 0) {
+                timingRules.rules.push({cronExpr: $('#c2').val(), value: $('#l2').val()})
+            }
+            if ($('#c3').val().length > 0) {
+                timingRules.rules.push({cronExpr: $('#c3').val(), value: $('#l3').val()})
+            }
+            return timingRules;
+        };
+
+        function getEvents(start, end) {
+            // convert date-only (month view) moment object to regular moment
+            start = moment(start.format());
+            end = moment(end.format());
+            var timingRules = getTimingRules();
+            var events = [];
+            var prevLabel = getTimeLabel(timingRules, start);
+            var prevTime = start.clone();
+            var currLabel = null;
+            var labelColorMap = {};
+            var colorIndex = 0;
+
+            for (var currTime = start.add(1, 'hours'); currTime.isSameOrBefore(end); currTime.add(1, 'hours')) {
+                currLabel = getTimeLabel(timingRules, currTime);
+                if (currLabel != prevLabel || currTime.isSame(end)) {
+
+                    if (!(prevLabel in labelColorMap)) {
+                        labelColorMap[prevLabel] = colors[colorIndex];
+                        colorIndex = (colorIndex + 1) % colors.length;
+                    }
+
+                    events.push({
+                        title: prevLabel,
+                        start: prevTime.format(),
+                        end: currTime.format(),
+                        backgroundColor: labelColorMap[prevLabel]
+                    })
+                    prevTime = currTime.clone();
+                    prevLabel = currLabel;
+                }
+                ;
+
+            }
+            return events;
+        }
+
+        later.date.localTime();
+
+        function getTimeLabel(timingRules, t) {
+            try {
+                for (var i = 0; i < timingRules.rules.length; i++) {
+                    var sched = later.parse.cron(timingRules.rules[i].cronExpr, true);
+                    if (later.schedule(sched).isValid(new Date(t.format()))) {
+                        return timingRules.rules[i].value;
+                    }
+                }
+            }
+            catch (e) {
+                console.log('invalid cron expression');
+            }
+            return timingRules.defaultValue;
+        }
+
+    </script>
+
+    <style>
+        .cronExpr, .timeLabel {
+            font-size: 20px;
+        }
+
+        #preview {
+            font-size: 20px;
+            float: right;
+        }
+
+        #calendar {
+            width: 800px;
+            height: 800px;
+            float: left;
+        }
+
+        #inputFormDiv {
+            float: left;
+            margin: 20px;
+        }
+
+    </style>
 </head>
+<body>
 
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="/">Sean Sit</a></h1>
-  
-    <h2>startups, web development, performance, scalability</h2>
-  
-</hgroup>
+<div id="inputFormDiv">
+    <form id="#inputForm">
+        <table>
+            <tr>
+                <td>
+                    <input class="cronExpr" type="text" name="cronExpr" value="* * * * * 1" id="c1">
+                </td>
+                <td>
+                    <input class="timeLabel" type="text" name="timeLabel" value="peak" id="l1">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input class="cronExpr" type="text" name="cronExpr" value="* * 2-4 * * *" id="c2">
+                </td>
+                <td>
+                    <input class="timeLabel" type="text" name="timeLabel" value="peak" id="l2">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input class="cronExpr" type="text" name="cronExpr" value="* * 6-8 * * *" id="c3">
+                </td>
+                <td>
+                    <input class="timeLabel" type="text" name="timeLabel" value="peak" id="l3">
+                </td>
+            </tr>
+            <tr/>
+            <td><br/></td>
+            <tr/>
+            <tr>
+                <td>
+                    Default
+                </td>
+                <td>
+                    <input class="timeLabel" type="text" name="timeLabel" value="offpeak" id="defaultValue">
+                </td>
+            </tr>
+        </table>
+        <br/>
 
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="http://google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:seansit.github.com" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
-</form>
-  
-<ul class="main-navigation">
-  <li><a href="/">Blog</a></li>
-  <li><a href="/blog/archives">Archives</a></li>
-</ul>
-
-</nav>
-  <div id="main">
-    <div id="content">
-      <div class="blog-index">
-  
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2012/02/20/hello-world/">Hello World</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-02-20T00:21:00-08:00" pubdate data-updated="true">Feb 20<span>th</span>, 2012</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content">
+    </form>
 </div>
-  
-  
 
-
-    </article>
-  
-  <div class="pagination">
-    
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
-</div>
-<aside class="sidebar">
-  
-    <section>
-  <h1>Recent Posts</h1>
-  <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/blog/2012/02/20/hello-world/">Hello World</a>
-      </li>
-    
-  </ul>
-</section>
-
-
-
-
-
-
-  
-</aside>
-
-    </div>
-  </div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2012 - Sean Sit -
-  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
-  
-
-
-
-
-
-
-
-  <script type="text/javascript">
-    (function(){
-      var twitterWidgets = document.createElement('script');
-      twitterWidgets.type = 'text/javascript';
-      twitterWidgets.async = true;
-      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
-      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
-    })();
-  </script>
-
-
-
-
-
+<div id="calendar"></div>
 </body>
 </html>
